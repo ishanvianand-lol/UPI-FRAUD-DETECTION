@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPI Threat Detection</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(180deg, #f8f9ff 0%, #ffffff 100%);
+            color: #1a1d3a;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Decorative gradient blobs */
+        .gradient-blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .blob-1 {
+            width: 600px;
+            height: 600px;
+            background: linear-gradient(135deg, #9aab96 0%, #b7aac3 100%);
+            top: -300px;
+            right: -200px;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .blob-2 {
+            width: 500px;
+            height: 500px;
+            background: linear-gradient(135deg, #9ca376 0%, #758472 100%);
+            bottom: -250px;
+            left: -150px;
+            animation: float 25s ease-in-out infinite reverse;
+        }
+
+        .blob-3 {
+            width: 450px;
+            height: 450px;
+            background: linear-gradient(135deg, #404850 0%, #81c6c9 100%);
+            top: 40%;
+            right: 10%;
+            animation: float 18s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 80px 20px 60px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-family: 'Sora', sans-serif;
+            font-size: 4em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #8f93a3 0%, #d4b5b5 50%, #8ec9a8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            letter-spacing: -2px;
+        }
+
+        .subtitle {
+            font-size: 1.3em;
+            color: #6b7280;
+            font-weight: 500;
+            margin-bottom: 30px;
+            letter-spacing: -0.5px;
+        }
+
+        .team-credits {
+            font-size: 0.9em;
+            color: #7c828c;
+            letter-spacing: 3px;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: center;
+            text-align: center;
+            padding: 14px 36px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+            margin: 60px 0;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            padding: 36px;
+            border-radius: 24px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.15);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .stat-card.green::before { background: linear-gradient(90deg, #9accbb, #254c40); }
+        .stat-card.blue::before { background: linear-gradient(90deg, #747981, #3b465e); }
+        .stat-card.purple::before { background: linear-gradient(90deg, #7c7688, #b1a6c3); }
+        .stat-card.orange::before { background: linear-gradient(90deg, #ab9a7e, #af824f); }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-family: 'Sora', sans-serif;
+            font-size: 3em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+
+        .detection-section {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            padding: 50px;
+            margin-bottom: 60px;
+            border-radius: 32px;
+            box-shadow: 0 4px 40px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .section-title {
+            font-family: 'Sora', sans-serif;
+            font-size: 2.2em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 35px;
+            letter-spacing: -1px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #6b7280;
+            font-size: 0.95em;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 14px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 22px;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            color: #1a1d3a;
+            font-family: 'Inter', sans-serif;
+            font-size: 1em;
+            resize: vertical;
+            min-height: 150px;
+            transition: all 0.3s ease;
+            border-radius: 16px;
+            line-height: 1.6;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea::placeholder {
+            color: #9ca3af;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 16px;
+            margin-top: 28px;
+        }
+
+        button {
+            flex: 1;
+            padding: 18px 40px;
+            font-family: 'Sora', sans-serif;
+            font-size: 1em;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 16px;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #6b7280;
+            border: 2px solid #e5e7eb;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+            color: #374151;
+            border-color: #d1d5db;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .spinner {
+            width: 56px;
+            height: 56px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 24px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-family: 'Sora', sans-serif;
+            color: #6b7280;
+            font-weight: 500;
+            font-size: 1.05em;
+        }
+
+        .result-box {
+            margin-top: 50px;
+            padding: 45px;
+            display: none;
+            border-radius: 24px;
+            animation: slideIn 0.5s ease;
+            border: 2px solid;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-box.fraud {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(220, 38, 38, 0.12) 100%);
+            border-color: #ef4444;
+        }
+
+        .result-box.legitimate {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.12) 100%);
+            border-color: #10b981;
+        }
+
+        .result-icon {
+            font-size: 4em;
+            margin-bottom: 24px;
+        }
+
+        .result-title {
+            font-family: 'Sora', sans-serif;
+            font-size: 2.4em;
+            font-weight: 700;
+            margin-bottom: 18px;
+            letter-spacing: -1px;
+        }
+
+        .result-box.fraud .result-title {
+            color: #dc2626;
+        }
+
+        .result-box.legitimate .result-title {
+            color: #059669;
+        }
+
+        .result-message {
+            font-size: 1.15em;
+            line-height: 1.7;
+            margin-bottom: 26px;
+            color: #4b5563;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 12px 28px;
+            font-family: 'Sora', sans-serif;
+            font-weight: 600;
+            font-size: 0.95em;
+            border-radius: 12px;
+        }
+
+        .result-box.fraud .confidence-badge {
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+        }
+
+        .result-box.legitimate .confidence-badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: #059669;
+        }
+
+        .examples-section {
+            margin-top: 60px;
+        }
+
+        .examples-section h3 {
+            font-family: 'Sora', sans-serif;
+            font-size: 2em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 32px;
+            letter-spacing: -1px;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 24px;
+        }
+
+        .example-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            padding: 28px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .example-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .example-card.fraud::before {
+            background: linear-gradient(180deg, #ef4444, #dc2626);
+        }
+
+        .example-card.legitimate::before {
+            background: linear-gradient(180deg, #10b981, #059669);
+        }
+
+        .example-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.15);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .example-card:hover::before {
+            width: 6px;
+        }
+
+        .example-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            font-size: 0.8em;
+            font-weight: 700;
+            margin-bottom: 14px;
+            border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .example-badge.fraud {
+            background: rgba(239, 68, 68, 0.12);
+            color: #dc2626;
+        }
+
+        .example-badge.legitimate {
+            background: rgba(16, 185, 129, 0.12);
+            color: #059669;
+        }
+
+        .example-text {
+            color: #4b5563;
+            line-height: 1.7;
+            font-size: 0.95em;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 60px 20px 40px;
+            margin-top: 80px;
+            border-top: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .footer p {
+            color: #9ca3af;
+            margin: 8px 0;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5em;
+            }
+
+            .subtitle {
+                font-size: 1.1em;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
+
+            .detection-section {
+                padding: 30px 24px;
+            }
+
+            .section-title {
+                font-size: 1.7em;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .examples-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="gradient-blob blob-1"></div>
+    <div class="gradient-blob blob-2"></div>
+    <div class="gradient-blob blob-3"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Nexus Guardian</h1>
+            <p class="subtitle">AI-Powered UPI Fraud Detection System</p>
+            
+        </div>
+
+        <div class="detection-section">
+            <h2 class="section-title">Message Analysis</h2>
+            <div class="input-group">
+                <label for="messageInput">Enter Message for Analysis</label>
+                <textarea 
+                    id="messageInput" 
+                    placeholder="Paste the UPI message you want to verify..."
+                ></textarea>
+            </div>
+            <div class="button-group">
+                <button class="btn-primary" onclick="analyzeMessage()">Analyze Message</button>
+                <button class="btn-secondary" onclick="clearInput()">Clear</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p class="loading-text">Analyzing message patterns...</p>
+            </div>
+
+            <div class="result-box" id="resultBox">
+                <div class="result-icon" id="resultIcon"></div>
+                <div class="result-title" id="resultTitle"></div>
+                <div class="result-message" id="resultMessage"></div>
+                <div class="confidence-badge" id="confidenceBadge"></div>
+            </div>
+        </div>
+
+        <div class="examples-section">
+            <h3>Sample Test Cases</h3>
+            <div class="examples-grid">
+                <div class="example-card fraud" onclick="useExample(this)">
+                    <div class="example-badge fraud">⚠ Fraud Alert</div>
+                    <div class="example-text">Congratulations! You won Rs.50000. Send bank details to claim prize now</div>
+                </div>
+                <div class="example-card legitimate" onclick="useExample(this)">
+                    <div class="example-badge legitimate">✓ Verified</div>
+                    <div class="example-text">Your UPI payment of Rs.500 to Amit Kumar successful. Ref ID: 234567890</div>
+                </div>
+                <div class="example-card fraud" onclick="useExample(this)">
+                    <div class="example-badge fraud">⚠ Fraud Alert</div>
+                    <div class="example-text">URGENT: Account will be blocked. Click link and enter OTP immediately</div>
+                </div>
+                <div class="example-card legitimate" onclick="useExample(this)">
+                    <div class="example-badge legitimate">✓ Verified</div>
+                    <div class="example-text">Payment reminder: Electricity bill Rs.850 due on 20th November</div>
+                </div>
+                <div class="example-card fraud" onclick="useExample(this)">
+                    <div class="example-badge fraud">⚠ Fraud Alert</div>
+                    <div class="example-text">Update your KYC now or account suspended. Share PAN and Aadhar details</div>
+                </div>
+                <div class="example-card legitimate" onclick="useExample(this)">
+                    <div class="example-badge legitimate">✓ Verified</div>
+                    <div class="example-text">Monthly salary Rs.45000 credited to your account on 1st November</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card green">
+                <div class="stat-label">AI Model</div>
+                <div class="stat-value" id="modelName">-</div>
+            </div>
+            <div class="stat-card blue">
+                <div class="stat-label">Accuracy</div>
+                <div class="stat-value" id="accuracy">-</div>
+            </div>
+            <div class="stat-card purple">
+                <div class="stat-label">Precision</div>
+                <div class="stat-value" id="precision">-</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-label">Recall</div>
+                <div class="stat-value" id="recall">-</div>
+            </div>
+        </div>
+
+        <div class="team-credits">
+                GREESHMA • ISHANVI • AKANSHA
+            </div>
+        <div class="footer">
+            <p>AI Fraud Detection System</p>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', function() {
+            fetch('/stats')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('modelName').textContent = data.model_name;
+                    document.getElementById('accuracy').textContent = data.accuracy + '%';
+                    document.getElementById('precision').textContent = data.precision + '%';
+                    document.getElementById('recall').textContent = data.recall + '%';
+                })
+                .catch(error => {
+                    console.error('Error loading stats:', error);
+                    document.getElementById('modelName').textContent = 'ERROR';
+                    document.getElementById('accuracy').textContent = '--';
+                    document.getElementById('precision').textContent = '--';
+                    document.getElementById('recall').textContent = '--';
+                });
+        });
+
+        function analyzeMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+
+            if (!message) {
+                alert('Please enter a message to analyze.');
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultBox').style.display = 'none';
+
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+
+                const resultBox = document.getElementById('resultBox');
+                const resultIcon = document.getElementById('resultIcon');
+                const resultTitle = document.getElementById('resultTitle');
+                const resultMessage = document.getElementById('resultMessage');
+                const confidenceBadge = document.getElementById('confidenceBadge');
+
+                if (data.is_fraud) {
+                    resultBox.className = 'result-box fraud';
+                    resultIcon.textContent = '⚠';
+                    resultTitle.textContent = 'Fraud Detected';
+                    resultMessage.textContent = 'Warning: This message shows fraudulent patterns. Do not share personal information, OTPs, or banking credentials. Report this message immediately.';
+                } else {
+                    resultBox.className = 'result-box legitimate';
+                    resultIcon.textContent = '✓';
+                    resultTitle.textContent = 'Legitimate Message';
+                    resultMessage.textContent = 'This message appears to be legitimate. However, always verify the sender and be cautious with sensitive information.';
+                }
+
+                if (data.confidence) {
+                    confidenceBadge.textContent = `Confidence: ${data.confidence}%`;
+                    confidenceBadge.style.display = 'inline-block';
+                } else {
+                    confidenceBadge.style.display = 'none';
+                }
+
+                resultBox.style.display = 'block';
+                resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                alert('Error: Unable to analyze message. Please try again.');
+                console.error('Error:', error);
+            });
+        }
+
+        function clearInput() {
+            document.getElementById('messageInput').value = '';
+            document.getElementById('resultBox').style.display = 'none';
+        }
+
+        function useExample(element) {
+            const exampleText = element.querySelector('.example-text').textContent;
+            document.getElementById('messageInput').value = exampleText;
+            document.getElementById('messageInput').focus();
+            document.getElementById('messageInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        document.getElementById('messageInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                analyzeMessage();
+            }
+        });
+    </script>
+</body>
+</html>
